@@ -58,7 +58,7 @@ As our outcome variable "classe" is an unordered factor variable, 1-accuracy can
 
 Irrelevant features and data with missing values will be eliminated. The two algorithms that are used to detect the features are decision tree and random forest. 
 
-### Step 1: Loading Packages
+### Loading Packages
 
 ```{r,echo=TRUE}
 library(caret);library(randomForest);library(rpart);library(rpart.plot);library(RColorBrewer);library(ggplot2);library(lattice)
@@ -148,10 +148,10 @@ Test result on TestTrainingSet:
 confusionMatrix(predictionRF,TestTrainingSet$classe)
 ```
 
-##Conclusion
+### Conclusion
 It is obvious that Random Forest algorithm has performed better than Decision Tree algorithm. The accuracy for Random Forest model was 0.995 which is 99.5% compared to the Decision Tree model which only produces 73.9% of accuracy. The Random Forests model is chosen. The expected out-of sample error is estimated at 0.5%.
 
-##Appendix
+### Appendix
 ```{r,echo=TRUE}
 predictfinal <- predict(modelRF, testing, type="class")
 predictfinal
