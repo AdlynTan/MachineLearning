@@ -1,0 +1,159 @@
+---
+title: "Machine Learning Course Project Writeup Week 4"
+author: "Adlyn"
+date: "September 4, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, the goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+
+## Data
+The training data for this project are available here: [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv]
+
+The test data are available here: [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv]
+
+The data for this project come from this source: [http://groupware.les.inf.puc-rio.br/har].
+
+
+##Approach:
+
+Our outcome variable is classe, a factor variable with 5 levels. For this data set, "participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in 5 different fashions:
+
+*Class A - exactly according to the specification 
+
+*Class B - throwing the elbows to the front 
+
+*Class C - lifting the dumbbell only halfway 
+
+*Class D - lowering the dumbbell only halfway 
+
+*Class E - throwing the hips to the front 
+
+All classes involve making different common mistakes while performing the unilateral dumbbell biceps curl except for class A. The prediction evaluation will be based on the least out-of-sample error and highest accuracy. Decision tree and random forest will be tested on the two models and the model with the highest accuracy will be chosen as the prediction model. 
+
+
+## Cross-Validation
+
+
+Cross-validation will be performed by subsampling the training data set randomly without replacement into 2 subsamples: TrainTrainingSet data (70% of the original Training data set) and TestTrainingSet data (30%). 
+Both models will be fitted on the TrainTrainingSet data set, and tested on the TestTrainingSet data. Once the most accurate model is chosen, it will be tested on the original Testing data set.
+
+
+##Expected out-of-sample error
+* Accuracy refers to the proportion of correct classified observation over the total sample in the TestTrainingSet data set.
+
+* Expected accuracy is the expected accuracy in the out-of-sample dataet which in this case, refers to the original testing data set. 
+
+* The expected out-of-sample error will correspond to the quantity: 1-accuracy in the cross-validation data. 
+
+Therefore, the expected value of the out-of-sample error will correspond to the expected number of missclassified observations or total observations in the Test data set, which is the quantity: 1-accuracy found from the cross-validation data set.
+
+As our outcome variable "classe" is an unordered factor variable, 1-accuracy can be chosen as the error type. The largesample size of 19622 in the training data set allows the training sample to be divided into sub training and sub testing to allow cross validation. 
+
+Irrelevant features and data with missing values will be eliminated. The two algorithms that are used to detect the features are decision tree and random forest. 
+
+### Step 1: Loading Packages
+
+```{r,echo=TRUE}
+library(caret);library(randomForest);library(rpart);library(rpart.plot);library(RColorBrewer);library(ggplot2);library(lattice)
+
+set.seed(1234)
+
+```
+
+### Getting and Cleaning Data
+
+The training and testing data URLs are as below:
+
+```{r,echo=TRUE}
+trainUrl<- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+
+testUrl <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+```
+
+The data is then loaded to the project:
+```{r,echo=TRUE}
+training <- read.csv(url(trainUrl), na.strings=c("NA","#DIV/0!",""))
+testing <- read.csv(url(testUrl), na.strings=c("NA","#DIV/0!",""))
+```
+
+Exploratory Analysis is conducted.
+```{r,echo=TRUE, eval=FALSE}
+str(training);str(testing);summary(training);summary(testing);head(training);head(testing)
+```
+
+Columns with missing values are deleted:
+```{r,echo=TRUE}
+training<-training[,colSums(is.na(training))==0]
+testing<-testing[,colSums(is.na(testing))==0]
+```
+
+Variables that are irrelevant are deleted too:
+
+```{r,echo=TRUE}
+training<-training[,-c(1:7)]
+testing<-testing[,-c(1:7)]
+```
+
+The data is then partitioned into 70% of the training dataset and 30% of the testing training data set.
+
+```{r,echo=TRUE}
+partTrainSet<- createDataPartition(y=training$classe,p=0.7,list=FALSE)
+TrainTrainingSet<-training[partTrainSet,]
+TestTrainingSet<-training[-partTrainSet,]
+```
+
+The frequency of each levels in the TrainTrainingSet data will be illustrated through the plot of the outcome variable.
+
+```{r,echo=TRUE}
+plot(TrainTrainingSet$classe, col="blue", main="Plot of levels of variable classe (TrainTrainingSet data set)", xlab="classe", ylab="Frequency")
+```
+
+
+Based on the graph above, we can see that each level frequency is within the same order of magnitude of each other. Level A has the highest frequency while level D has the lowest frequency.
+
+
+### Applying Machine Learning Algorithms :Decision Tree
+```{r,echo=TRUE}
+modelDT <- rpart(classe ~ ., data=TrainTrainingSet, method="class")
+
+predictionDT <- predict(modelDT, TestTrainingSet, type = "class")
+
+# Plot the Decision Tree
+rpart.plot(modelDT, main="Classification By Using Decision Tree", extra=102, under=TRUE, faclen=0)
+```
+
+To test results on TestTrainingSet Data set:
+
+```{r,echo=TRUE}
+confusionMatrix(predictionDT, TestTrainingSet$classe)
+```
+
+### Applying Machine Learning Algorithms :Random Forest
+
+```{r,echo=TRUE}
+modelRF<- randomForest(classe~., data=TrainTrainingSet, method="class")
+predictionRF<- predict(modelRF, TestTrainingSet, type= "class")
+```
+
+Test result on TestTrainingSet:
+```{r,echo=TRUE}
+confusionMatrix(predictionRF,TestTrainingSet$classe)
+```
+
+##Conclusion
+It is obvious that Random Forest algorithm has performed better than Decision Tree algorithm. The accuracy for Random Forest model was 0.995 which is 99.5% compared to the Decision Tree model which only produces 73.9% of accuracy. The Random Forests model is chosen. The expected out-of sample error is estimated at 0.5%.
+
+##Appendix
+```{r,echo=TRUE}
+predictfinal <- predict(modelRF, testing, type="class")
+predictfinal
+```
+
